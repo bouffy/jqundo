@@ -1,7 +1,7 @@
-jqundo (j-kwon-do)
+jqundo
 ======
 
-Undo for jQuery v0.0.0.0.0.0.1 beta
+Undo for jQuery v0.0.1
 
 Pass in a function which does some reversible jQuery stuff 
 (very, very limited support right now).  e.g.,
