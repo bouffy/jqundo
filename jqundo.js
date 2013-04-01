@@ -28,12 +28,13 @@ Transaction.methods = (function() {
         mapping = [ 
             [ 'show', 'hide' ],
             [ 'slideUp', 'slideDown' ],
-            [ 'fadeIn', 'fadeOut']
+            [ 'fadeIn', 'fadeOut'],
+            [ 'addClass', 'removeClass']
         ];
     
     // Builds mappings that go both ways 
     // i.e., show/hide, hide/show
-    for(var i = 0; i < mappings.length; i++) {
+    for(var i = 0; i < mapping.length; i++) {
       methods[mapping[i][0]] = mapping[i][1];
       methods[mapping[i][1]] = mapping[i][0];
     }
@@ -46,25 +47,26 @@ Transaction.undo = (function() {
       tmp;
     
   function invert(body) {
+    var key;
     // First replace elements with tokenized equivalents
-    for(k in m) {
-      if(m.hasOwnProperty(k)) {
-        tmp = new RegExp('[^\{]' + m[k] + '(?=[^\}])');
-        body = body.replace(tmp, '{{' + m[k] + '}}');
+    for(key in m) {
+      if(m.hasOwnProperty(key)) {
+        tmp = new RegExp('[^\{]' + m[key] + '(?=[^\}])');
+        body = body.replace(tmp, '{{' + m[key] + '}}');
       }
     }
 
     // Then replace the tokens with their reversible equivalents
-    for(k in m) {
-      if(m.hasOwnProperty(k)) {
+    for(key in m) {
+      if(m.hasOwnProperty(key)) {
         // Since RegExp in JS doesn't include lookbehinds
         // the . operator was included in the repalce match, 
         // so it must be replaced when the token is replaced
-        body = body.replace('{{' + m[k] + '}}', '.' + k);
+        body = body.replace('{{' + m[key] + '}}', '.' + key);
       }
     }
-    
-    return body;
+      
+    return body.split('\n').reverse().join('\n');
   }
 
   return function() {
@@ -76,7 +78,7 @@ Transaction.undo = (function() {
     body = tx.args.pop();
 
     tx.args.push(invert(body));
-    return (Function.apply(this, tx.args)).apply(this, tx.vals);
+    return (Function.apply(tx.context, tx.args)).apply(tx.context, tx.vals);
   }
 }());
 
@@ -104,7 +106,8 @@ Transaction.do = (function() {
   }
 
   return function() {
-    var args, vals, f;
+    var context = this,
+        args, vals, f;
 
     if(arguments.length === 0) return undefined;
 
@@ -113,9 +116,12 @@ Transaction.do = (function() {
     args = getArgs(f.toString());
     args.push(funcBody(f.toString()));
       
-    // TODO: probably should hang onto this?
-    Transaction.last = { args: args, vals: vals };
+    Transaction.last = { 
+        context: context,
+        args: args, 
+        vals: vals 
+    };
       
-    return (Function.apply(this, args)).apply(this, vals);
+    return (Function.apply(context, args)).apply(context, vals);
   };
 }());
